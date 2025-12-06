@@ -55,6 +55,23 @@ jobs:
         mvn clean package -DskipTests -Pwindows
       shell: cmd
       
+    - name: List target directory
+      run: |
+        dir target
+      shell: cmd
+      
+    - name: List installers directory
+      run: |
+        if exist target\installers dir target\installers
+        if not exist target\installers echo "Installers directory does not exist"
+      shell: cmd
+      
+    - name: List windows installers directory
+      run: |
+        if exist target\installers\windows dir target\installers\windows
+        if not exist target\installers\windows echo "Windows installers directory does not exist"
+      shell: cmd
+      
     - name: Upload Windows installer
       uses: actions/upload-artifact@v4
       with:
@@ -81,6 +98,26 @@ jobs:
     - name: Build Linux installer with Maven
       run: |
         mvn clean package -DskipTests -Plinux
+        
+    - name: List target directory
+      run: |
+        ls -la target/
+        
+    - name: List installers directory
+      run: |
+        if [ -d "target/installers" ]; then
+          ls -la target/installers/
+        else
+          echo "Installers directory does not exist"
+        fi
+        
+    - name: List linux installers directory
+      run: |
+        if [ -d "target/installers/linux" ]; then
+          ls -la target/installers/linux/
+        else
+          echo "Linux installers directory does not exist"
+        fi
         
     - name: Upload Linux installer
       uses: actions/upload-artifact@v4
@@ -109,6 +146,26 @@ jobs:
       run: |
         mvn clean package -DskipTests -Pmac-intel
         
+    - name: List target directory
+      run: |
+        ls -la target/
+        
+    - name: List installers directory
+      run: |
+        if [ -d "target/installers" ]; then
+          ls -la target/installers/
+        else
+          echo "Installers directory does not exist"
+        fi
+        
+    - name: List mac intel installers directory
+      run: |
+        if [ -d "target/installers/mac-intel" ]; then
+          ls -la target/installers/mac-intel/
+        else
+          echo "macOS Intel installers directory does not exist"
+        fi
+        
     - name: Upload macOS Intel installer
       uses: actions/upload-artifact@v4
       with:
@@ -136,6 +193,26 @@ jobs:
       run: |
         mvn clean package -DskipTests -Pmac-arm
         
+    - name: List target directory
+      run: |
+        ls -la target/
+        
+    - name: List installers directory
+      run: |
+        if [ -d "target/installers" ]; then
+          ls -la target/installers/
+        else
+          echo "Installers directory does not exist"
+        fi
+        
+    - name: List mac arm installers directory
+      run: |
+        if [ -d "target/installers/mac-arm" ]; then
+          ls -la target/installers/mac-arm/
+        else
+          echo "macOS ARM installers directory does not exist"
+        fi
+        
     - name: Upload macOS ARM installer
       uses: actions/upload-artifact@v4
       with:
@@ -147,6 +224,8 @@ jobs:
     name: Create GitHub Release
     needs: [build-windows, build-linux, build-macos-intel, build-macos-arm]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
     - name: Create Release
@@ -168,13 +247,29 @@ jobs:
         echo "=== Downloaded artifacts ==="
         ls -la
         echo "=== Windows installer ==="
-        ls -la windows-installer/
+        if [ -d "windows-installer" ]; then
+          ls -la windows-installer/
+        else
+          echo "Windows installer directory not found"
+        fi
         echo "=== Linux installer ==="
-        ls -la linux-installer/
+        if [ -d "linux-installer" ]; then
+          ls -la linux-installer/
+        else
+          echo "Linux installer directory not found"
+        fi
         echo "=== macOS Intel installer ==="
-        ls -la macos-intel-installer/
+        if [ -d "macos-intel-installer" ]; then
+          ls -la macos-intel-installer/
+        else
+          echo "macOS Intel installer directory not found"
+        fi
         echo "=== macOS ARM installer ==="
-        ls -la macos-arm-installer/
+        if [ -d "macos-arm-installer" ]; then
+          ls -la macos-arm-installer/
+        else
+          echo "macOS ARM installer directory not found"
+        fi
         
     - name: Upload Windows installer to release
       uses: actions/upload-release-asset@v1
@@ -185,6 +280,7 @@ jobs:
         asset_path: windows-installer/*.exe
         asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-windows.exe
         asset_content_type: application/vnd.microsoft.portable-executable
+      continue-on-error: true
         
     - name: Upload Linux installer to release
       uses: actions/upload-release-asset@v1
@@ -195,6 +291,7 @@ jobs:
         asset_path: linux-installer/*.deb
         asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-linux.deb
         asset_content_type: application/vnd.debian.binary-package
+      continue-on-error: true
         
     - name: Upload macOS Intel installer to release
       uses: actions/upload-release-asset@v1
@@ -205,6 +302,7 @@ jobs:
         asset_path: macos-intel-installer/*.dmg
         asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-macos-intel.dmg
         asset_content_type: application/octet-stream
+      continue-on-error: true
         
     - name: Upload macOS ARM installer to release
       uses: actions/upload-release-asset@v1
@@ -215,3 +313,4 @@ jobs:
         asset_path: macos-arm-installer/*.dmg
         asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-macos-arm.dmg
         asset_content_type: application/octet-stream
+      continue-on-error: true
