@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(java:*)",
+      "Bash(hdiutil attach:*)",
+      "Bash(codesign:*)",
+      "Bash(spctl:*)",
+      "Bash(xattr:*)",
+      "Bash(mvn clean package:*)",
+      "Bash(hdiutil detach:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

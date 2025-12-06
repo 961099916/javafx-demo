@@ -1,0 +1,218 @@
+name: Build and Release Multi-platform Installers
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  APP_NAME: JavaFXApp
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Build with Maven
+      run: |
+        mvn clean compile -DskipTests
+        
+    - name: Run tests
+      run: |
+        mvn test
+
+  build-windows:
+    name: Build Windows Installer
+    needs: build-and-test
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Build Windows installer with Maven
+      run: |
+        mvn clean package -DskipTests -Pwindows
+      shell: cmd
+      
+    - name: Upload Windows installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-installer
+        path: target/installers/windows/*.exe
+        retention-days: 7
+
+  build-linux:
+    name: Build Linux Installer
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Build Linux installer with Maven
+      run: |
+        mvn clean package -DskipTests -Plinux
+        
+    - name: Upload Linux installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-installer
+        path: target/installers/linux/*.deb
+        retention-days: 7
+
+  build-macos-intel:
+    name: Build macOS Intel Installer
+    needs: build-and-test
+    runs-on: macos-13  # Intel-based macOS
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Build macOS Intel installer with Maven
+      run: |
+        mvn clean package -DskipTests -Pmac-intel
+        
+    - name: Upload macOS Intel installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-intel-installer
+        path: target/installers/mac-intel/*.dmg
+        retention-days: 7
+        
+  build-macos-arm:
+    name: Build macOS ARM Installer
+    needs: build-and-test
+    runs-on: macos-latest  # ARM-based macOS (Apple Silicon)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Build macOS ARM installer with Maven
+      run: |
+        mvn clean package -DskipTests -Pmac-arm
+        
+    - name: Upload macOS ARM installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-arm-installer
+        path: target/installers/mac-arm/*.dmg
+        retention-days: 7
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-windows, build-linux, build-macos-intel, build-macos-arm]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+
+    - name: Download all installers
+      uses: actions/download-artifact@v4
+      
+    - name: Display downloaded files
+      run: |
+        echo "=== Downloaded artifacts ==="
+        ls -la
+        echo "=== Windows installer ==="
+        ls -la windows-installer/
+        echo "=== Linux installer ==="
+        ls -la linux-installer/
+        echo "=== macOS Intel installer ==="
+        ls -la macos-intel-installer/
+        echo "=== macOS ARM installer ==="
+        ls -la macos-arm-installer/
+        
+    - name: Upload Windows installer to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: windows-installer/*.exe
+        asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-windows.exe
+        asset_content_type: application/vnd.microsoft.portable-executable
+        
+    - name: Upload Linux installer to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: linux-installer/*.deb
+        asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-linux.deb
+        asset_content_type: application/vnd.debian.binary-package
+        
+    - name: Upload macOS Intel installer to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: macos-intel-installer/*.dmg
+        asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-macos-intel.dmg
+        asset_content_type: application/octet-stream
+        
+    - name: Upload macOS ARM installer to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: macos-arm-installer/*.dmg
+        asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-macos-arm.dmg
+        asset_content_type: application/octet-stream
