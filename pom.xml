@@ -227,7 +227,7 @@
                 </os>
             </activation>
             <properties>
-                <javafx.platform>win-amd64</javafx.platform>
+                <javafx.platform>win</javafx.platform>
             </properties>
             <build>
                 <plugins>
@@ -278,7 +278,7 @@
                 </os>
             </activation>
             <properties>
-                <javafx.platform>linux-x64</javafx.platform>
+                <javafx.platform>linux</javafx.platform>
             </properties>
             <build>
                 <plugins>
