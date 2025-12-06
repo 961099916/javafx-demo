@@ -287,11 +287,13 @@ jobs:
         VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
         echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
         
-        # 如果是标签推送，则使用标签名，否则创建基于提交SHA的唯一标签名
+        # 如果是标签推送，则使用标签名，否则创建基于提交时间格式化的唯一标签名
         if [[ "${{ github.ref_type }}" == 'tag' ]]; then
           TAG_NAME="${{ github.ref_name }}"
         else
-          TAG_NAME="v$VERSION-release-${{ github.sha }}"
+          # 获取提交时间并格式化为 YYYYMMDD-HHMMSS
+          COMMIT_TIME=$(git show -s --format=%cd --date=format:%Y%m%d-%H%M%S HEAD)
+          TAG_NAME="v$VERSION-release-$COMMIT_TIME"
         fi
         echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
         
