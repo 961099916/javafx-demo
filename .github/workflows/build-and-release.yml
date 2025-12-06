@@ -147,7 +147,6 @@ jobs:
     name: Create GitHub Release
     needs: [build-windows, build-linux, build-macos-intel, build-macos-arm]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
     
     steps:
     - name: Create Release
