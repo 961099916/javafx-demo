@@ -226,16 +226,47 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+      
+    - name: Set release version from pom.xml
+      run: |
+        # 从pom.xml中提取版本号
+        VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
+        
+        # 如果是标签推送，则使用标签名，否则创建基于提交SHA的唯一标签名
+        if [[ "${{ github.ref_type }}" == 'tag' ]]; then
+          TAG_NAME="${{ github.ref_name }}"
+        else
+          TAG_NAME="v$VERSION-release-${{ github.sha }}"
+        fi
+        echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+        
+        # 删除已存在的Release和标签（如果存在）
+        gh release delete "$TAG_NAME" --yes 2>/dev/null || true
+        git push origin --delete "$TAG_NAME" 2>/dev/null || true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
+        tag_name: ${{ env.TAG_NAME }}
+        release_name: Release v${{ env.RELEASE_VERSION }}
         draft: false
         prerelease: false
 
@@ -278,7 +309,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: windows-installer/*.exe
-        asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-windows.exe
+        asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-windows.exe
         asset_content_type: application/vnd.microsoft.portable-executable
       continue-on-error: true
         
@@ -289,7 +320,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: linux-installer/*.deb
-        asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-linux.deb
+        asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-linux.deb
         asset_content_type: application/vnd.debian.binary-package
       continue-on-error: true
         
@@ -300,7 +331,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: macos-intel-installer/*.dmg
-        asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-macos-intel.dmg
+        asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-macos-intel.dmg
         asset_content_type: application/octet-stream
       continue-on-error: true
         
@@ -311,6 +342,6 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: macos-arm-installer/*.dmg
-        asset_name: ${{ env.APP_NAME }}-${{ github.ref_name }}-macos-arm.dmg
+        asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-macos-arm.dmg
         asset_content_type: application/octet-stream
       continue-on-error: true
