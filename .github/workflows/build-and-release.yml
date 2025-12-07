@@ -159,8 +159,7 @@ jobs:
       with:
         name: windows-installer
         path: |
-          application/target/installers/windows/*.exe
-          application/target/*.exe
+          application/target/installers/windows/**/*.exe
         retention-days: 7
 
   build-linux:
@@ -243,8 +242,7 @@ jobs:
       with:
         name: linux-installer
         path: |
-          application/target/installers/linux/*.deb
-          application/target/*.deb
+          application/target/installers/linux/**/*.deb
         retention-days: 7
 
   build-macos-intel:
@@ -325,8 +323,7 @@ jobs:
       with:
         name: macos-intel-installer
         path: |
-          application/target/installers/mac-intel/*.dmg
-          application/target/*.dmg
+          application/target/installers/mac-intel/**/*.dmg
         retention-days: 7
         
   build-macos-arm:
@@ -407,8 +404,7 @@ jobs:
       with:
         name: macos-arm-installer
         path: |
-          application/target/installers/mac-arm/*.dmg
-          application/target/*.dmg
+          application/target/installers/mac-arm/**/*.dmg
         retention-days: 7
 
   create-release:
@@ -418,6 +414,7 @@ jobs:
     permissions:
       contents: write
       actions: write
+      packages: write
     
     steps:
     - name: Checkout code
@@ -530,49 +527,65 @@ jobs:
         echo "macOS DMG files: $(find . -name "*.dmg" -type f | wc -l)"
         
     - name: Upload Windows installer to release
-      uses: actions/upload-release-asset@v1
+      run: |
+        echo "=== Uploading Windows installer ==="
+        if [ -d "windows-installer" ] && [ "$(find windows-installer -name "*.exe" -type f 2>/dev/null | wc -l)" -gt 0 ]; then
+          echo "Windows installer directory exists and contains EXE files"
+          find windows-installer -name "*.exe" -type f -exec ls -la {} \;
+          echo "Uploading Windows installer..."
+          # 使用gh命令上传文件，查找实际的EXE文件路径
+          find windows-installer -name "*.exe" -type f -exec gh release upload "$TAG_NAME" {} --clobber --name "$(basename {})" \; || echo "Failed to upload Windows installer"
+        else
+          echo "Windows installer directory does not exist or contains no EXE files"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: windows-installer/*.exe
-        asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-windows.exe
-        asset_content_type: application/vnd.microsoft.portable-executable
       continue-on-error: true
-      if: hashFiles('windows-installer/*.exe') != ''
         
     - name: Upload Linux installer to release
-      uses: actions/upload-release-asset@v1
+      run: |
+        echo "=== Uploading Linux installer ==="
+        if [ -d "linux-installer" ] && [ "$(find linux-installer -name "*.deb" -type f 2>/dev/null | wc -l)" -gt 0 ]; then
+          echo "Linux installer directory exists and contains DEB files"
+          find linux-installer -name "*.deb" -type f -exec ls -la {} \;
+          echo "Uploading Linux installer..."
+          # 使用gh命令上传文件，查找实际的DEB文件路径
+          find linux-installer -name "*.deb" -type f -exec gh release upload "$TAG_NAME" {} --clobber --name "$(basename {})" \; || echo "Failed to upload Linux installer"
+        else
+          echo "Linux installer directory does not exist or contains no DEB files"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: linux-installer/*.deb
-        asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-linux.deb
-        asset_content_type: application/vnd.debian.binary-package
       continue-on-error: true
-      if: hashFiles('linux-installer/*.deb') != ''
         
     - name: Upload macOS Intel installer to release
-      uses: actions/upload-release-asset@v1
+      run: |
+        echo "=== Uploading macOS Intel installer ==="
+        if [ -d "macos-intel-installer" ] && [ "$(find macos-intel-installer -name "*.dmg" -type f 2>/dev/null | wc -l)" -gt 0 ]; then
+          echo "macOS Intel installer directory exists and contains DMG files"
+          find macos-intel-installer -name "*.dmg" -type f -exec ls -la {} \;
+          echo "Uploading macOS Intel installer..."
+          # 使用gh命令上传文件，查找实际的DMG文件路径
+          find macos-intel-installer -name "*.dmg" -type f -exec gh release upload "$TAG_NAME" {} --clobber --name "$(basename {})" \; || echo "Failed to upload macOS Intel installer"
+        else
+          echo "macOS Intel installer directory does not exist or contains no DMG files"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: macos-intel-installer/*.dmg
-        asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-macos-intel.dmg
-        asset_content_type: application/octet-stream
       continue-on-error: true
-      if: hashFiles('macos-intel-installer/*.dmg') != ''
         
     - name: Upload macOS ARM installer to release
-      uses: actions/upload-release-asset@v1
+      run: |
+        echo "=== Uploading macOS ARM installer ==="
+        if [ -d "macos-arm-installer" ] && [ "$(find macos-arm-installer -name "*.dmg" -type f 2>/dev/null | wc -l)" -gt 0 ]; then
+          echo "macOS ARM installer directory exists and contains DMG files"
+          find macos-arm-installer -name "*.dmg" -type f -exec ls -la {} \;
+          echo "Uploading macOS ARM installer..."
+          # 使用gh命令上传文件，查找实际的DMG文件路径
+          find macos-arm-installer -name "*.dmg" -type f -exec gh release upload "$TAG_NAME" {} --clobber --name "$(basename {})" \; || echo "Failed to upload macOS ARM installer"
+        else
+          echo "macOS ARM installer directory does not exist or contains no DMG files"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: macos-arm-installer/*.dmg
-        asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-macos-arm.dmg
-        asset_content_type: application/octet-stream
       continue-on-error: true
-      if: hashFiles('macos-arm-installer/*.dmg') != ''
