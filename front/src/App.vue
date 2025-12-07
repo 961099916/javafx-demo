@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import HelloWorld from './components/HelloWorld.vue'
+import ExampleComponent from './components/ExampleComponent.vue'
+import UserManagement from './components/UserManagement.vue'
 </script>
 
 <template>
@@ -17,7 +19,11 @@ import HelloWorld from './components/HelloWorld.vue'
     </div>
   </header>
 
-  <RouterView />
+  <main>
+    <ExampleComponent />
+    <UserManagement />
+    <RouterView />
+  </main>
 </template>
 
 <style scoped>
@@ -54,6 +60,10 @@ nav a {
 
 nav a:first-of-type {
   border: 0;
+}
+
+main {
+  padding: 20px;
 }
 
 @media (min-width: 1024px) {

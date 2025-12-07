@@ -10,6 +10,8 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    check-location: false
+    validate-on-migrate: true  # 恢复迁移校验
   sql:
     init:
       mode: never
@@ -31,11 +33,16 @@ app:
   
   # GitHub API设置
   github-api-user-agent: "JavaFX-App-Updater/1.0 (https://github.com/jiuxialb/javafx-demo)"
-  github-api-version: "2022-11-28"
 
 mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: top.jiuxialb.javafx.entity
   configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       id-type: auto
+      logic-delete-value: 1
+      logic-not-delete-value: 0
