@@ -106,10 +106,26 @@ jobs:
         if exist application\target\installers\windows (
           dir application\target\installers\windows
         ) else (
-          echo "Windows installers directory does not exist"
-          # 查找所有exe文件
-          dir application\*.exe /s 2>nul || echo "No exe files found"
-          dir application\target\*.exe /s 2>nul || echo "No exe files found in target"
+          echo Windows installers directory does not exist
+          rem 查找所有exe文件
+          dir application\*.exe /s 2>nul || echo No exe files found
+          dir application\target\*.exe /s 2>nul || echo No exe files found in target
+        )
+      shell: cmd
+      
+    - name: Check for exe files in target directory
+      run: |
+        echo "=== Looking for exe files in target ==="
+        dir application\target\*.exe /s 2>nul || echo No exe files found in target directory
+      shell: cmd
+      
+    - name: Check for exe files in target installers directory
+      run: |
+        echo "=== Looking for exe files in installers ==="
+        if exist application\target\installers (
+          dir application\target\installers\*.exe /s 2>nul || echo No exe files found in installers directory
+        ) else (
+          echo Installers directory does not exist
         )
       shell: cmd
       
