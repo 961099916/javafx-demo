@@ -1,0 +1,41 @@
+spring:
+  main:
+    web-application-type: none
+  datasource:
+    url: jdbc:sqlite:${user.home}/.javafx-demo/demo.db
+    driver-class-name: org.sqlite.JDBC
+    username: sa
+    password: ""
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  sql:
+    init:
+      mode: never
+
+app:
+  # 默认年龄值
+  default-age: 25
+  
+  # 主窗口尺寸
+  main-window-width: 800.0
+  main-window-height: 600.0
+  main-window-min-width: 600.0
+  main-window-min-height: 400.0
+  
+  # HTTP超时设置
+  http-connect-timeout: 10000
+  http-read-timeout: 10000
+  http-download-timeout: 30000
+  
+  # GitHub API设置
+  github-api-user-agent: "JavaFX-App-Updater/1.0 (https://github.com/jiuxialb/javafx-demo)"
+  github-api-version: "2022-11-28"
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto

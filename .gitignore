@@ -3,6 +3,7 @@
 
 # Log files
 *.log
+logs/
 
 # BlueJ files
 *.ctxt
@@ -18,6 +19,10 @@
 *.zip
 *.tar.gz
 *.rar
+
+target/
+dist/
+output/
 
 # virtual machine crash logs
 hs_err_pid*
@@ -58,10 +63,23 @@ Thumbs.db
 
 # JavaFX specific
 javafx-sdk*/
-
-# Application specific
 *.tmp
 *.temp
-logs/
-output/
-dist/
+
+# Database files
+*.db
+
+# Build artifacts
+*.exe
+*.dmg
+*.deb
+
+# Configuration files
+*.prefs
+*.properties
+
+# Temp files
+*.tmp
+*.temp
+~*
+*.bak

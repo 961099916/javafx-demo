@@ -19,6 +19,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: front/package-lock.json
+        
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
@@ -26,12 +33,24 @@ jobs:
         distribution: 'temurin'
         cache: maven
         
+    - name: Install frontend dependencies
+      run: |
+        cd front
+        npm ci
+        
+    - name: Build frontend
+      run: |
+        cd front
+        npm run build-and-copy
+        
     - name: Build with Maven
       run: |
+        cd application
         mvn clean compile -DskipTests
         
     - name: Run tests
       run: |
+        cd application
         mvn test
 
   build-windows:
@@ -43,6 +62,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: front/package-lock.json
+        
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
@@ -50,50 +76,40 @@ jobs:
         distribution: 'temurin'
         cache: maven
         
+    - name: Install frontend dependencies
+      run: |
+        cd front
+        npm ci
+      shell: cmd
+      
+    - name: Build frontend
+      run: |
+        cd front
+        npm run build-and-copy
+      shell: cmd
+      
     - name: Build Windows installer with Maven
       run: |
+        cd application
         mvn clean package -DskipTests -Pwindows
       shell: cmd
       
-    - name: List target directory
+    - name: Debug - List target directory
       run: |
         echo "=== Target directory contents ==="
-        dir target
+        dir application\target
       shell: cmd
       
-    - name: List installers directory
+    - name: Debug - List installers directory
       run: |
         echo "=== Installers directory contents ==="
-        if exist target\installers (
-          dir target\installers
-        ) else (
-          echo "Installers directory does not exist"
-        )
-      shell: cmd
-      
-    - name: List windows installers directory
-      run: |
-        echo "=== Windows installers directory contents ==="
-        if exist target\installers\windows (
-          dir target\installers\windows
+        if exist application\target\installers\windows (
+          dir application\target\installers\windows
         ) else (
           echo "Windows installers directory does not exist"
-        )
-      shell: cmd
-      
-    - name: Check for exe files in target directory
-      run: |
-        echo "=== Looking for exe files in target ==="
-        dir target\*.exe /s 2>nul || echo "No exe files found in target directory"
-      shell: cmd
-      
-    - name: Check for exe files in target installers directory
-      run: |
-        echo "=== Looking for exe files in installers ==="
-        if exist target\installers (
-          dir target\installers\*.exe /s 2>nul || echo "No exe files found in installers directory"
-        ) else (
-          echo "Installers directory does not exist"
+          # 查找所有exe文件
+          dir application\*.exe /s 2>nul || echo "No exe files found"
+          dir application\target\*.exe /s 2>nul || echo "No exe files found in target"
         )
       shell: cmd
       
@@ -101,7 +117,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: windows-installer
-        path: target/installers/windows/JavaFXApp-1.0.exe
+        path: |
+          application/target/installers/windows/*.exe
+          application/target/*.exe
         retention-days: 7
 
   build-linux:
@@ -113,6 +131,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: front/package-lock.json
+        
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
@@ -120,52 +145,45 @@ jobs:
         distribution: 'temurin'
         cache: maven
         
+    - name: Install frontend dependencies
+      run: |
+        cd front
+        npm ci
+        
+    - name: Build frontend
+      run: |
+        cd front
+        npm run build-and-copy
+        
     - name: Build Linux installer with Maven
       run: |
+        cd application
         mvn clean package -DskipTests -Plinux
         
-    - name: List target directory
+    - name: Debug - List target directory
       run: |
         echo "=== Target directory contents ==="
-        ls -la target/
+        ls -la application/target/
         
-    - name: List installers directory
+    - name: Debug - List installers directory
       run: |
         echo "=== Installers directory contents ==="
-        if [ -d "target/installers" ]; then
-          ls -la target/installers/
-        else
-          echo "Installers directory does not exist"
-        fi
-        
-    - name: List linux installers directory
-      run: |
-        echo "=== Linux installers directory contents ==="
-        if [ -d "target/installers/linux" ]; then
-          ls -la target/installers/linux/
+        if [ -d "application/target/installers/linux" ]; then
+          ls -la application/target/installers/linux/
         else
           echo "Linux installers directory does not exist"
-        fi
-        
-    - name: Check for deb files in target directory
-      run: |
-        echo "=== Looking for deb files in target ==="
-        find target/ -name "*.deb" -type f 2>/dev/null || echo "No deb files found in target directory"
-        
-    - name: Check for deb files in installers directory
-      run: |
-        echo "=== Looking for deb files in installers ==="
-        if [ -d "target/installers" ]; then
-          find target/installers/ -name "*.deb" -type f 2>/dev/null || echo "No deb files found in installers directory"
-        else
-          echo "Installers directory does not exist"
+          # 查找所有deb文件
+          find application/ -name "*.deb" -type f 2>/dev/null || echo "No deb files found"
+          find application/target/ -name "*.deb" -type f 2>/dev/null || echo "No deb files found in target"
         fi
         
     - name: Upload Linux installer
       uses: actions/upload-artifact@v4
       with:
         name: linux-installer
-        path: target/installers/linux/javafxapp_1.0_amd64.deb
+        path: |
+          application/target/installers/linux/*.deb
+          application/target/*.deb
         retention-days: 7
 
   build-macos-intel:
@@ -177,6 +195,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: front/package-lock.json
+        
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
@@ -184,35 +209,43 @@ jobs:
         distribution: 'temurin'
         cache: maven
         
+    - name: Install frontend dependencies
+      run: |
+        cd front
+        npm ci
+        
+    - name: Build frontend
+      run: |
+        cd front
+        npm run build-and-copy
+        
     - name: Build macOS Intel installer with Maven
       run: |
+        cd application
         mvn clean package -DskipTests -Pmac-intel
         
-    - name: List target directory
+    - name: Debug - List target directory
       run: |
-        ls -la target/
+        ls -la application/target/
         
-    - name: List installers directory
+    - name: Debug - List installers directory
       run: |
-        if [ -d "target/installers" ]; then
-          ls -la target/installers/
-        else
-          echo "Installers directory does not exist"
-        fi
-        
-    - name: List mac intel installers directory
-      run: |
-        if [ -d "target/installers/mac-intel" ]; then
-          ls -la target/installers/mac-intel/
+        if [ -d "application/target/installers/mac-intel" ]; then
+          ls -la application/target/installers/mac-intel/
         else
           echo "macOS Intel installers directory does not exist"
+          # 查找所有dmg文件
+          find application/ -name "*.dmg" -type f 2>/dev/null || echo "No dmg files found"
+          find application/target/ -name "*.dmg" -type f 2>/dev/null || echo "No dmg files found in target"
         fi
         
     - name: Upload macOS Intel installer
       uses: actions/upload-artifact@v4
       with:
         name: macos-intel-installer
-        path: target/installers/mac-intel/JavaFXApp-1.0.dmg
+        path: |
+          application/target/installers/mac-intel/*.dmg
+          application/target/*.dmg
         retention-days: 7
         
   build-macos-arm:
@@ -224,6 +257,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: front/package-lock.json
+        
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
@@ -231,35 +271,43 @@ jobs:
         distribution: 'temurin'
         cache: maven
         
+    - name: Install frontend dependencies
+      run: |
+        cd front
+        npm ci
+        
+    - name: Build frontend
+      run: |
+        cd front
+        npm run build-and-copy
+        
     - name: Build macOS ARM installer with Maven
       run: |
+        cd application
         mvn clean package -DskipTests -Pmac-arm
         
-    - name: List target directory
+    - name: Debug - List target directory
       run: |
-        ls -la target/
+        ls -la application/target/
         
-    - name: List installers directory
+    - name: Debug - List installers directory
       run: |
-        if [ -d "target/installers" ]; then
-          ls -la target/installers/
-        else
-          echo "Installers directory does not exist"
-        fi
-        
-    - name: List mac arm installers directory
-      run: |
-        if [ -d "target/installers/mac-arm" ]; then
-          ls -la target/installers/mac-arm/
+        if [ -d "application/target/installers/mac-arm" ]; then
+          ls -la application/target/installers/mac-arm/
         else
           echo "macOS ARM installers directory does not exist"
+          # 查找所有dmg文件
+          find application/ -name "*.dmg" -type f 2>/dev/null || echo "No dmg files found"
+          find application/target/ -name "*.dmg" -type f 2>/dev/null || echo "No dmg files found in target"
         fi
         
     - name: Upload macOS ARM installer
       uses: actions/upload-artifact@v4
       with:
         name: macos-arm-installer
-        path: target/installers/mac-arm/JavaFXApp-1.0.dmg
+        path: |
+          application/target/installers/mac-arm/*.dmg
+          application/target/*.dmg
         retention-days: 7
 
   create-release:
@@ -284,7 +332,7 @@ jobs:
     - name: Set release version from pom.xml
       run: |
         # 从pom.xml中提取版本号
-        VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        VERSION=$(cd application && mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
         echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
         
         # 如果是标签推送，则使用标签名，否则创建基于提交时间格式化的唯一标签名
@@ -321,50 +369,12 @@ jobs:
       run: |
         echo "=== Downloaded artifacts ==="
         ls -la
-        echo "=== Windows installer ==="
-        if [ -d "windows-installer" ]; then
-          ls -la windows-installer/
-          if [ -f "windows-installer/JavaFXApp-1.0.exe" ]; then
-            echo "Windows installer file found"
-          else
-            echo "Windows installer file NOT found"
+        for dir in */; do
+          if [ -d "$dir" ]; then
+            echo "=== $dir ==="
+            ls -la "$dir"
           fi
-        else
-          echo "Windows installer directory not found"
-        fi
-        echo "=== Linux installer ==="
-        if [ -d "linux-installer" ]; then
-          ls -la linux-installer/
-          if [ -f "linux-installer/javafxapp_1.0_amd64.deb" ]; then
-            echo "Linux installer file found"
-          else
-            echo "Linux installer file NOT found"
-          fi
-        else
-          echo "Linux installer directory not found"
-        fi
-        echo "=== macOS Intel installer ==="
-        if [ -d "macos-intel-installer" ]; then
-          ls -la macos-intel-installer/
-          if [ -f "macos-intel-installer/JavaFXApp-1.0.dmg" ]; then
-            echo "macOS Intel installer file found"
-          else
-            echo "macOS Intel installer file NOT found"
-          fi
-        else
-          echo "macOS Intel installer directory not found"
-        fi
-        echo "=== macOS ARM installer ==="
-        if [ -d "macos-arm-installer" ]; then
-          ls -la macos-arm-installer/
-          if [ -f "macos-arm-installer/JavaFXApp-1.0.dmg" ]; then
-            echo "macOS ARM installer file found"
-          else
-            echo "macOS ARM installer file NOT found"
-          fi
-        else
-          echo "macOS ARM installer directory not found"
-        fi
+        done
         
     - name: Upload Windows installer to release
       uses: actions/upload-release-asset@v1
@@ -372,7 +382,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: windows-installer/JavaFXApp-1.0.exe
+        asset_path: ./windows-installer/*.exe
         asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-windows.exe
         asset_content_type: application/vnd.microsoft.portable-executable
       continue-on-error: true
@@ -383,7 +393,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: linux-installer/javafxapp_1.0_amd64.deb
+        asset_path: ./linux-installer/*.deb
         asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-linux.deb
         asset_content_type: application/vnd.debian.binary-package
       continue-on-error: true
@@ -394,7 +404,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: macos-intel-installer/JavaFXApp-1.0.dmg
+        asset_path: ./macos-intel-installer/*.dmg
         asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-macos-intel.dmg
         asset_content_type: application/octet-stream
       continue-on-error: true
@@ -405,7 +415,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: macos-arm-installer/JavaFXApp-1.0.dmg
+        asset_path: ./macos-arm-installer/*.dmg
         asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-macos-arm.dmg
         asset_content_type: application/octet-stream
       continue-on-error: true
