@@ -526,20 +526,31 @@ jobs:
         echo "Linux DEB files: $(find . -name "*.deb" -type f | wc -l)"
         echo "macOS DMG files: $(find . -name "*.dmg" -type f | wc -l)"
         
+    - name: Verify unified installer files creation
+      run: |
+        echo "=== Verifying unified installer files ==="
+        ls -la JavaFXApp-v${RELEASE_VERSION}* 2>/dev/null || echo "No unified installer files found"
+        
     - name: Upload Windows installer to release
       run: |
         echo "=== Uploading Windows installer ==="
         if [ -d "windows-installer" ] && [ "$(find windows-installer -name "*.exe" -type f 2>/dev/null | wc -l)" -gt 0 ]; then
           echo "Windows installer directory exists and contains EXE files"
           find windows-installer -name "*.exe" -type f -exec ls -la {} \;
-          echo "Uploading Windows installer..."
-          # 使用gh命令上传文件，查找实际的EXE文件路径
-          find windows-installer -name "*.exe" -type f -exec gh release upload "$TAG_NAME" {} --clobber \;
+          echo "Uploading Windows installer with unified name..."
+          # 重命名并上传Windows安装包
+          WINDOWS_FILE=$(find windows-installer -name "*.exe" -type f | head -n 1)
+          if [ -n "$WINDOWS_FILE" ]; then
+            cp "$WINDOWS_FILE" "./JavaFXApp-v${RELEASE_VERSION}-windows-x64.exe"
+            gh release upload "$TAG_NAME" "./JavaFXApp-v${RELEASE_VERSION}-windows-x64.exe" --clobber
+            rm "./JavaFXApp-v${RELEASE_VERSION}-windows-x64.exe"
+          fi
         else
           echo "Windows installer directory does not exist or contains no EXE files"
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
       continue-on-error: true
         
     - name: Upload Linux installer to release
@@ -548,14 +559,20 @@ jobs:
         if [ -d "linux-installer" ] && [ "$(find linux-installer -name "*.deb" -type f 2>/dev/null | wc -l)" -gt 0 ]; then
           echo "Linux installer directory exists and contains DEB files"
           find linux-installer -name "*.deb" -type f -exec ls -la {} \;
-          echo "Uploading Linux installer..."
-          # 使用gh命令上传文件，查找实际的DEB文件路径
-          find linux-installer -name "*.deb" -type f -exec gh release upload "$TAG_NAME" {} --clobber \;
+          echo "Uploading Linux installer with unified name..."
+          # 重命名并上传Linux安装包
+          LINUX_FILE=$(find linux-installer -name "*.deb" -type f | head -n 1)
+          if [ -n "$LINUX_FILE" ]; then
+            cp "$LINUX_FILE" "./JavaFXApp-v${RELEASE_VERSION}-linux-x64.deb"
+            gh release upload "$TAG_NAME" "./JavaFXApp-v${RELEASE_VERSION}-linux-x64.deb" --clobber
+            rm "./JavaFXApp-v${RELEASE_VERSION}-linux-x64.deb"
+          fi
         else
           echo "Linux installer directory does not exist or contains no DEB files"
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
       continue-on-error: true
         
     - name: Upload macOS Intel installer to release
@@ -564,14 +581,20 @@ jobs:
         if [ -d "macos-intel-installer" ] && [ "$(find macos-intel-installer -name "*.dmg" -type f 2>/dev/null | wc -l)" -gt 0 ]; then
           echo "macOS Intel installer directory exists and contains DMG files"
           find macos-intel-installer -name "*.dmg" -type f -exec ls -la {} \;
-          echo "Uploading macOS Intel installer..."
-          # 使用gh命令上传文件，查找实际的DMG文件路径
-          find macos-intel-installer -name "*.dmg" -type f -exec gh release upload "$TAG_NAME" {} --clobber \;
+          echo "Uploading macOS Intel installer with unified name..."
+          # 重命名并上传macOS Intel安装包
+          MACOS_INTEL_FILE=$(find macos-intel-installer -name "*.dmg" -type f | head -n 1)
+          if [ -n "$MACOS_INTEL_FILE" ]; then
+            cp "$MACOS_INTEL_FILE" "./JavaFXApp-v${RELEASE_VERSION}-macos-x64.dmg"
+            gh release upload "$TAG_NAME" "./JavaFXApp-v${RELEASE_VERSION}-macos-x64.dmg" --clobber
+            rm "./JavaFXApp-v${RELEASE_VERSION}-macos-x64.dmg"
+          fi
         else
           echo "macOS Intel installer directory does not exist or contains no DMG files"
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
       continue-on-error: true
         
     - name: Upload macOS ARM installer to release
@@ -580,12 +603,18 @@ jobs:
         if [ -d "macos-arm-installer" ] && [ "$(find macos-arm-installer -name "*.dmg" -type f 2>/dev/null | wc -l)" -gt 0 ]; then
           echo "macOS ARM installer directory exists and contains DMG files"
           find macos-arm-installer -name "*.dmg" -type f -exec ls -la {} \;
-          echo "Uploading macOS ARM installer..."
-          # 使用gh命令上传文件，查找实际的DMG文件路径
-          find macos-arm-installer -name "*.dmg" -type f -exec gh release upload "$TAG_NAME" {} --clobber \;
+          echo "Uploading macOS ARM installer with unified name..."
+          # 重命名并上传macOS ARM安装包
+          MACOS_ARM_FILE=$(find macos-arm-installer -name "*.dmg" -type f | head -n 1)
+          if [ -n "$MACOS_ARM_FILE" ]; then
+            cp "$MACOS_ARM_FILE" "./JavaFXApp-v${RELEASE_VERSION}-macos-arm64.dmg"
+            gh release upload "$TAG_NAME" "./JavaFXApp-v${RELEASE_VERSION}-macos-arm64.dmg" --clobber
+            rm "./JavaFXApp-v${RELEASE_VERSION}-macos-arm64.dmg"
+          fi
         else
           echo "macOS ARM installer directory does not exist or contains no DMG files"
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
       continue-on-error: true
