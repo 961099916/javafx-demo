@@ -74,7 +74,7 @@ public class SpringBootJavaFXApplication extends Application {
             Scene scene = new Scene(webView, 800, 600);
             
             // 配置主窗口
-            primaryStage.setTitle("JavaFX Web Application");
+            primaryStage.setTitle("JiuXialb");
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(600);
             primaryStage.setMinHeight(400);
