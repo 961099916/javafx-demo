@@ -35,23 +35,31 @@ jobs:
         
     - name: Install frontend dependencies
       run: |
+        echo "=== Installing frontend dependencies ==="
         cd front
         npm ci
+        echo "=== Frontend dependencies installed successfully ==="
         
     - name: Build frontend
       run: |
+        echo "=== Building frontend ==="
         cd front
         npm run build-and-copy
+        echo "=== Frontend built and copied successfully ==="
         
     - name: Build with Maven
       run: |
+        echo "=== Building with Maven ==="
         cd application
         mvn clean compile -DskipTests
+        echo "=== Maven build completed successfully ==="
         
     - name: Run tests
       run: |
+        echo "=== Running tests ==="
         cd application
         mvn test
+        echo "=== Tests completed ==="
 
   build-windows:
     name: Build Windows Installer
@@ -78,20 +86,26 @@ jobs:
         
     - name: Install frontend dependencies
       run: |
+        echo "=== Installing frontend dependencies ==="
         cd front
         npm ci
+        echo "=== Frontend dependencies installed successfully ==="
       shell: cmd
       
     - name: Build frontend
       run: |
+        echo "=== Building frontend ==="
         cd front
         npm run build-and-copy
+        echo "=== Frontend built and copied successfully ==="
       shell: cmd
       
     - name: Build Windows installer with Maven
       run: |
+        echo "=== Building Windows installer with Maven ==="
         cd application
         mvn clean package -DskipTests -Pwindows
+        echo "=== Windows installer built successfully ==="
       shell: cmd
       
     - name: Debug - List target directory
@@ -115,12 +129,28 @@ jobs:
       
     - name: Ensure installers directory exists
       run: |
-        mkdir application\target\installers\windows 2>nul || echo Directory already exists
+        echo "=== Ensuring installers directory exists ==="
+        if not exist "application\target\installers\windows" mkdir "application\target\installers\windows"
+        echo "=== Moving EXE files to installers directory ==="
         rem 检查是否有exe文件在其他位置，如果有则移动到正确位置
         for /r application\target %%f in (*.exe) do (
           if not exist "application\target\installers\windows\%%~nxf" (
-            move "%%f" "application\target\installers\windows\" >nul 2>&1
+            echo Moving %%f to installers directory
+            move "%%f" "application\target\installers\windows\" >nul 2>&1 || echo Failed to move %%f
+          ) else (
+            echo File %%~nxf already exists in installers directory
           )
+        )
+        echo "=== Installers directory setup completed ==="
+      shell: cmd
+      
+    - name: List final installers directory
+      run: |
+        echo "=== Final installers directory contents ==="
+        if exist application\target\installers\windows (
+          dir application\target\installers\windows
+        ) else (
+          echo Windows installers directory does not exist
         )
       shell: cmd
       
@@ -168,8 +198,10 @@ jobs:
         
     - name: Build Linux installer with Maven
       run: |
+        echo "=== Building Linux installer with Maven ==="
         cd application
         mvn clean package -DskipTests -Plinux
+        echo "=== Linux installer built successfully ==="
         
     - name: Debug - List target directory
       run: |
@@ -190,9 +222,21 @@ jobs:
         
     - name: Ensure installers directory exists
       run: |
+        echo "=== Ensuring installers directory exists ==="
         mkdir -p application/target/installers/linux
+        echo "=== Moving DEB files to installers directory ==="
         # 检查是否有deb文件在其他位置，如果有则移动到正确位置
-        find application/target/ -name "*.deb" -type f -exec mv {} application/target/installers/linux/ \; 2>/dev/null || true
+        find application/target/ -name "*.deb" -type f -exec sh -c 'filename=$(basename "$1"); if [ ! -f "application/target/installers/linux/$filename" ]; then echo "Moving $1 to installers directory"; mv "$1" application/target/installers/linux/ 2>/dev/null || echo "Failed to move $1"; else echo "File $filename already exists in installers directory"; fi' _ {} \; || echo "Failed to move some DEB files"
+        echo "=== Installers directory setup completed ==="
+        
+    - name: List final installers directory
+      run: |
+        echo "=== Final installers directory contents ==="
+        if [ -d "application/target/installers/linux" ]; then
+          ls -la application/target/installers/linux/
+        else
+          echo "Linux installers directory does not exist"
+        fi
         
     - name: Upload Linux installer
       uses: actions/upload-artifact@v4
@@ -238,8 +282,10 @@ jobs:
         
     - name: Build macOS Intel installer with Maven
       run: |
+        echo "=== Building macOS Intel installer with Maven ==="
         cd application
         mvn clean package -DskipTests -Pmac-intel
+        echo "=== macOS Intel installer built successfully ==="
         
     - name: Debug - List target directory
       run: |
@@ -258,9 +304,21 @@ jobs:
         
     - name: Ensure installers directory exists
       run: |
+        echo "=== Ensuring installers directory exists ==="
         mkdir -p application/target/installers/mac-intel
+        echo "=== Moving DMG files to installers directory ==="
         # 检查是否有dmg文件在其他位置，如果有则移动到正确位置
-        find application/target/ -name "*.dmg" -type f -exec mv {} application/target/installers/mac-intel/ \; 2>/dev/null || true
+        find application/target/ -name "*.dmg" -type f -exec sh -c 'filename=$(basename "$1"); if [ ! -f "application/target/installers/mac-intel/$filename" ]; then echo "Moving $1 to installers directory"; mv "$1" application/target/installers/mac-intel/ 2>/dev/null || echo "Failed to move $1"; else echo "File $filename already exists in installers directory"; fi' _ {} \; || echo "Failed to move some DMG files"
+        echo "=== Installers directory setup completed ==="
+        
+    - name: List final installers directory
+      run: |
+        echo "=== Final installers directory contents ==="
+        if [ -d "application/target/installers/mac-intel" ]; then
+          ls -la application/target/installers/mac-intel/
+        else
+          echo "macOS Intel installers directory does not exist"
+        fi
         
     - name: Upload macOS Intel installer
       uses: actions/upload-artifact@v4
@@ -306,8 +364,10 @@ jobs:
         
     - name: Build macOS ARM installer with Maven
       run: |
+        echo "=== Building macOS ARM installer with Maven ==="
         cd application
         mvn clean package -DskipTests -Pmac-arm
+        echo "=== macOS ARM installer built successfully ==="
         
     - name: Debug - List target directory
       run: |
@@ -326,9 +386,21 @@ jobs:
         
     - name: Ensure installers directory exists
       run: |
+        echo "=== Ensuring installers directory exists ==="
         mkdir -p application/target/installers/mac-arm
+        echo "=== Moving DMG files to installers directory ==="
         # 检查是否有dmg文件在其他位置，如果有则移动到正确位置
-        find application/target/ -name "*.dmg" -type f -exec mv {} application/target/installers/mac-arm/ \; 2>/dev/null || true
+        find application/target/ -name "*.dmg" -type f -exec sh -c 'filename=$(basename "$1"); if [ ! -f "application/target/installers/mac-arm/$filename" ]; then echo "Moving $1 to installers directory"; mv "$1" application/target/installers/mac-arm/ 2>/dev/null || echo "Failed to move $1"; else echo "File $filename already exists in installers directory"; fi' _ {} \; || echo "Failed to move some DMG files"
+        echo "=== Installers directory setup completed ==="
+        
+    - name: List final installers directory
+      run: |
+        echo "=== Final installers directory contents ==="
+        if [ -d "application/target/installers/mac-arm" ]; then
+          ls -la application/target/installers/mac-arm/
+        else
+          echo "macOS ARM installers directory does not exist"
+        fi
         
     - name: Upload macOS ARM installer
       uses: actions/upload-artifact@v4
@@ -390,7 +462,7 @@ jobs:
         release_name: Release v${{ env.RELEASE_VERSION }}
         draft: false
         prerelease: false
-
+        
     - name: Download all installers
       uses: actions/download-artifact@v4
       
@@ -447,7 +519,15 @@ jobs:
         echo "=== Finding all installer files ==="
         find . -name "*.exe" -o -name "*.deb" -o -name "*.dmg" | while read file; do
           echo "Found installer: $file"
+          ls -lh "$file"  # 显示文件详细信息
         done
+        
+    - name: Count installer files
+      run: |
+        echo "=== Counting installer files ==="
+        echo "Windows EXE files: $(find . -name "*.exe" -type f | wc -l)"
+        echo "Linux DEB files: $(find . -name "*.deb" -type f | wc -l)"
+        echo "macOS DMG files: $(find . -name "*.dmg" -type f | wc -l)"
         
     - name: Upload Windows installer to release
       uses: actions/upload-release-asset@v1
