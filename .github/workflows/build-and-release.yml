@@ -534,7 +534,7 @@ jobs:
           find windows-installer -name "*.exe" -type f -exec ls -la {} \;
           echo "Uploading Windows installer..."
           # 使用gh命令上传文件，查找实际的EXE文件路径
-          find windows-installer -name "*.exe" -type f -exec gh release upload "$TAG_NAME" {} --clobber --name "$(basename {})" \; || echo "Failed to upload Windows installer"
+          find windows-installer -name "*.exe" -type f -exec gh release upload "$TAG_NAME" {} --clobber \;
         else
           echo "Windows installer directory does not exist or contains no EXE files"
         fi
@@ -550,7 +550,7 @@ jobs:
           find linux-installer -name "*.deb" -type f -exec ls -la {} \;
           echo "Uploading Linux installer..."
           # 使用gh命令上传文件，查找实际的DEB文件路径
-          find linux-installer -name "*.deb" -type f -exec gh release upload "$TAG_NAME" {} --clobber --name "$(basename {})" \; || echo "Failed to upload Linux installer"
+          find linux-installer -name "*.deb" -type f -exec gh release upload "$TAG_NAME" {} --clobber \;
         else
           echo "Linux installer directory does not exist or contains no DEB files"
         fi
@@ -566,7 +566,7 @@ jobs:
           find macos-intel-installer -name "*.dmg" -type f -exec ls -la {} \;
           echo "Uploading macOS Intel installer..."
           # 使用gh命令上传文件，查找实际的DMG文件路径
-          find macos-intel-installer -name "*.dmg" -type f -exec gh release upload "$TAG_NAME" {} --clobber --name "$(basename {})" \; || echo "Failed to upload macOS Intel installer"
+          find macos-intel-installer -name "*.dmg" -type f -exec gh release upload "$TAG_NAME" {} --clobber \;
         else
           echo "macOS Intel installer directory does not exist or contains no DMG files"
         fi
@@ -582,7 +582,7 @@ jobs:
           find macos-arm-installer -name "*.dmg" -type f -exec ls -la {} \;
           echo "Uploading macOS ARM installer..."
           # 使用gh命令上传文件，查找实际的DMG文件路径
-          find macos-arm-installer -name "*.dmg" -type f -exec gh release upload "$TAG_NAME" {} --clobber --name "$(basename {})" \; || echo "Failed to upload macOS ARM installer"
+          find macos-arm-installer -name "*.dmg" -type f -exec gh release upload "$TAG_NAME" {} --clobber \;
         else
           echo "macOS ARM installer directory does not exist or contains no DMG files"
         fi
