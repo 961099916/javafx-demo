@@ -113,19 +113,14 @@ jobs:
         )
       shell: cmd
       
-    - name: Check for exe files in target directory
+    - name: Ensure installers directory exists
       run: |
-        echo "=== Looking for exe files in target ==="
-        dir application\target\*.exe /s 2>nul || echo No exe files found in target directory
-      shell: cmd
-      
-    - name: Check for exe files in target installers directory
-      run: |
-        echo "=== Looking for exe files in installers ==="
-        if exist application\target\installers (
-          dir application\target\installers\*.exe /s 2>nul || echo No exe files found in installers directory
-        ) else (
-          echo Installers directory does not exist
+        mkdir application\target\installers\windows 2>nul || echo Directory already exists
+        rem 检查是否有exe文件在其他位置，如果有则移动到正确位置
+        for /r application\target %%f in (*.exe) do (
+          if not exist "application\target\installers\windows\%%~nxf" (
+            move "%%f" "application\target\installers\windows\" >nul 2>&1
+          )
         )
       shell: cmd
       
@@ -193,6 +188,12 @@ jobs:
           find application/target/ -name "*.deb" -type f 2>/dev/null || echo "No deb files found in target"
         fi
         
+    - name: Ensure installers directory exists
+      run: |
+        mkdir -p application/target/installers/linux
+        # 检查是否有deb文件在其他位置，如果有则移动到正确位置
+        find application/target/ -name "*.deb" -type f -exec mv {} application/target/installers/linux/ \; 2>/dev/null || true
+        
     - name: Upload Linux installer
       uses: actions/upload-artifact@v4
       with:
@@ -255,6 +256,12 @@ jobs:
           find application/target/ -name "*.dmg" -type f 2>/dev/null || echo "No dmg files found in target"
         fi
         
+    - name: Ensure installers directory exists
+      run: |
+        mkdir -p application/target/installers/mac-intel
+        # 检查是否有dmg文件在其他位置，如果有则移动到正确位置
+        find application/target/ -name "*.dmg" -type f -exec mv {} application/target/installers/mac-intel/ \; 2>/dev/null || true
+        
     - name: Upload macOS Intel installer
       uses: actions/upload-artifact@v4
       with:
@@ -316,6 +323,12 @@ jobs:
           find application/ -name "*.dmg" -type f 2>/dev/null || echo "No dmg files found"
           find application/target/ -name "*.dmg" -type f 2>/dev/null || echo "No dmg files found in target"
         fi
+        
+    - name: Ensure installers directory exists
+      run: |
+        mkdir -p application/target/installers/mac-arm
+        # 检查是否有dmg文件在其他位置，如果有则移动到正确位置
+        find application/target/ -name "*.dmg" -type f -exec mv {} application/target/installers/mac-arm/ \; 2>/dev/null || true
         
     - name: Upload macOS ARM installer
       uses: actions/upload-artifact@v4
@@ -381,15 +394,59 @@ jobs:
     - name: Download all installers
       uses: actions/download-artifact@v4
       
-    - name: Display downloaded files
+    - name: Display downloaded files structure
       run: |
-        echo "=== Downloaded artifacts ==="
+        echo "=== Current directory structure ==="
+        pwd
         ls -la
-        for dir in */; do
-          if [ -d "$dir" ]; then
-            echo "=== $dir ==="
-            ls -la "$dir"
-          fi
+        echo "=== Detailed directory listing ==="
+        find . -type d | sort
+        echo "=== All files ==="
+        find . -type f | sort
+        
+    - name: Check specific installer directories
+      run: |
+        echo "=== Checking windows-installer directory ==="
+        if [ -d "windows-installer" ]; then
+          ls -la windows-installer/
+          echo "EXE files in windows-installer:"
+          find windows-installer/ -name "*.exe" -type f 2>/dev/null || echo "No EXE files found"
+        else
+          echo "windows-installer directory does not exist"
+        fi
+        
+        echo "=== Checking linux-installer directory ==="
+        if [ -d "linux-installer" ]; then
+          ls -la linux-installer/
+          echo "DEB files in linux-installer:"
+          find linux-installer/ -name "*.deb" -type f 2>/dev/null || echo "No DEB files found"
+        else
+          echo "linux-installer directory does not exist"
+        fi
+        
+        echo "=== Checking macos-intel-installer directory ==="
+        if [ -d "macos-intel-installer" ]; then
+          ls -la macos-intel-installer/
+          echo "DMG files in macos-intel-installer:"
+          find macos-intel-installer/ -name "*.dmg" -type f 2>/dev/null || echo "No DMG files found"
+        else
+          echo "macos-intel-installer directory does not exist"
+        fi
+        
+        echo "=== Checking macos-arm-installer directory ==="
+        if [ -d "macos-arm-installer" ]; then
+          ls -la macos-arm-installer/
+          echo "DMG files in macos-arm-installer:"
+          find macos-arm-installer/ -name "*.dmg" -type f 2>/dev/null || echo "No DMG files found"
+        else
+          echo "macos-arm-installer directory does not exist"
+        fi
+        
+    - name: Find and list all installer files
+      run: |
+        echo "=== Finding all installer files ==="
+        find . -name "*.exe" -o -name "*.deb" -o -name "*.dmg" | while read file; do
+          echo "Found installer: $file"
         done
         
     - name: Upload Windows installer to release
@@ -398,10 +455,11 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./windows-installer/*.exe
+        asset_path: windows-installer/*.exe
         asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-windows.exe
         asset_content_type: application/vnd.microsoft.portable-executable
       continue-on-error: true
+      if: hashFiles('windows-installer/*.exe') != ''
         
     - name: Upload Linux installer to release
       uses: actions/upload-release-asset@v1
@@ -409,10 +467,11 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./linux-installer/*.deb
+        asset_path: linux-installer/*.deb
         asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-linux.deb
         asset_content_type: application/vnd.debian.binary-package
       continue-on-error: true
+      if: hashFiles('linux-installer/*.deb') != ''
         
     - name: Upload macOS Intel installer to release
       uses: actions/upload-release-asset@v1
@@ -420,10 +479,11 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./macos-intel-installer/*.dmg
+        asset_path: macos-intel-installer/*.dmg
         asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-macos-intel.dmg
         asset_content_type: application/octet-stream
       continue-on-error: true
+      if: hashFiles('macos-intel-installer/*.dmg') != ''
         
     - name: Upload macOS ARM installer to release
       uses: actions/upload-release-asset@v1
@@ -431,7 +491,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./macos-arm-installer/*.dmg
+        asset_path: macos-arm-installer/*.dmg
         asset_name: ${{ env.APP_NAME }}-v${{ env.RELEASE_VERSION }}-macos-arm.dmg
         asset_content_type: application/octet-stream
       continue-on-error: true
+      if: hashFiles('macos-arm-installer/*.dmg') != ''
