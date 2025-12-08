@@ -1,14 +1,13 @@
 import { defineStore } from 'pinia'
-import { ApiService } from '@/services/api'
+import { ApiService, type User, type PageData } from '@/services/api'
 
 // 定义用户状态接口
 interface UserState {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  userInfo: any | null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  userList: any[]
+  userInfo: User | null
+  userList: User[]
   loading: boolean
   error: string | null
+  total: number
 }
 
 // 创建用户store
@@ -17,7 +16,8 @@ export const useUserStore = defineStore('user', {
     userInfo: null,
     userList: [],
     loading: false,
-    error: null
+    error: null,
+    total: 0
   }),
 
   getters: {
@@ -25,7 +25,8 @@ export const useUserStore = defineStore('user', {
     getUserInfo: (state) => state.userInfo,
     getUserList: (state) => state.userList,
     isLoading: (state) => state.loading,
-    getError: (state) => state.error
+    getError: (state) => state.error,
+    getTotal: (state) => state.total
   },
 
   actions: {
@@ -34,7 +35,10 @@ export const useUserStore = defineStore('user', {
       this.error = null
       try {
         const response = await ApiService.getUserInfo(userId)
-        this.userInfo = response.data.data // 访问API响应中的data字段
+        // 访问API响应中的data字段
+        if (response && response.data) {
+          this.userInfo = response.data as unknown as User
+        }
       } catch (error) {
         this.error = (error as Error).message || '获取用户信息失败'
         console.error('获取用户信息失败:', error)
@@ -44,14 +48,28 @@ export const useUserStore = defineStore('user', {
     },
 
     async fetchUserList(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      params?: any
+      params?: { page?: number; size?: number }
     ) {
       this.loading = true
       this.error = null
       try {
         const response = await ApiService.getUserList(params)
-        this.userList = response.data.data // 访问API响应中的data字段
+        // 根据实际的API响应结构调整
+        if (response && response.data) {
+          const data = response.data as unknown as PageData<User>
+          if (data && data.records) {
+            // 如果是分页数据结构
+            this.userList = data.records
+            this.total = data.total
+          } else if (Array.isArray(data)) {
+            // 如果是普通数组
+            this.userList = data
+            this.total = data.length
+          } else {
+            this.userList = []
+            this.total = 0
+          }
+        }
       } catch (error) {
         this.error = (error as Error).message || '获取用户列表失败'
         console.error('获取用户列表失败:', error)
@@ -61,8 +79,7 @@ export const useUserStore = defineStore('user', {
     },
 
     async createUser(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      userData: any
+      userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>
     ) {
       this.loading = true
       this.error = null
@@ -70,7 +87,7 @@ export const useUserStore = defineStore('user', {
         const response = await ApiService.createUser(userData)
         // 添加成功后刷新用户列表
         await this.fetchUserList()
-        return response.data.data // 访问API响应中的data字段
+        return response.data // 访问API响应中的data字段
       } catch (error) {
         this.error = (error as Error).message || '创建用户失败'
         console.error('创建用户失败:', error)
@@ -82,8 +99,7 @@ export const useUserStore = defineStore('user', {
 
     async updateUser(
       userId: string,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      userData: any
+      userData: Partial<User>
     ) {
       this.loading = true
       this.error = null
@@ -91,7 +107,7 @@ export const useUserStore = defineStore('user', {
         const response = await ApiService.updateUser(userId, userData)
         // 更新成功后刷新用户信息
         await this.fetchUserInfo(userId)
-        return response.data.data // 访问API响应中的data字段
+        return response.data // 访问API响应中的data字段
       } catch (error) {
         this.error = (error as Error).message || '更新用户失败'
         console.error('更新用户失败:', error)
@@ -108,7 +124,7 @@ export const useUserStore = defineStore('user', {
         const response = await ApiService.deleteUser(userId)
         // 删除成功后刷新用户列表
         await this.fetchUserList()
-        return response.data.data // 访问API响应中的data字段
+        return response.data // 访问API响应中的data字段
       } catch (error) {
         this.error = (error as Error).message || '删除用户失败'
         console.error('删除用户失败:', error)

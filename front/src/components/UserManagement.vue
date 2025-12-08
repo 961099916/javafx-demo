@@ -29,8 +29,10 @@
       <!-- 分页 -->
       <el-pagination
         layout="prev, pager, next"
-        :total="100"
-        :page-size="10"
+        :total="pagination.total"
+        :page-size="pagination.pageSize"
+        :current-page="pagination.currentPage"
+        @current-change="handlePageChange"
         style="margin-top: 20px; text-align: right;"
       />
     </el-card>
@@ -76,6 +78,12 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import type { User } from '@/services/api'
+
+// 分页相关
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 // 使用用户store
 const userStore = useUserStore()
@@ -111,6 +119,11 @@ const userRules = reactive<FormRules>({
 const userList = computed(() => userStore.getUserList)
 const isLoading = computed(() => userStore.isLoading)
 const errorMessage = computed(() => userStore.getError)
+const pagination = computed(() => ({
+  currentPage: currentPage.value,
+  pageSize: pageSize.value,
+  total: userStore.getTotal // 从store中获取总条数
+}))
 
 // 方法
 const showCreateDialog = () => {
@@ -119,11 +132,10 @@ const showCreateDialog = () => {
   dialogVisible.value = true
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const editUser = (user: any) => {
+const editUser = (user: User) => {
   dialogTitle.value = '编辑用户'
   isEditing.value = true
-  editingUserId.value = user.id
+  editingUserId.value = user.id?.toString() || ''
   userForm.name = user.name
   userForm.email = user.email
   dialogVisible.value = true
@@ -158,14 +170,14 @@ const submitUser = async () => {
   })
 }
 
-const deleteUser = (userId: string) => {
+const deleteUser = (userId: number) => {
   ElMessageBox.confirm('确定要删除这个用户吗？', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
     try {
-      await userStore.deleteUser(userId)
+      await userStore.deleteUser(userId.toString())
       ElMessage.success('用户删除成功')
     } catch (error) {
       console.error('删除失败:', error)
@@ -189,8 +201,28 @@ const clearError = () => {
 
 // 组件挂载时获取用户列表
 onMounted(() => {
-  userStore.fetchUserList()
+  fetchUsersWithPagination()
 })
+
+// 获取带分页的用户列表
+const fetchUsersWithPagination = async () => {
+  try {
+    await userStore.fetchUserList({
+      page: currentPage.value,
+      size: pageSize.value
+    })
+    // 更新总条数（已经在store中处理了）
+    total.value = userStore.getTotal
+  } catch (error) {
+    console.error('获取用户列表失败:', error)
+  }
+}
+
+// 处理页码变化
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+  fetchUsersWithPagination()
+}
 </script>
 
 <style scoped>

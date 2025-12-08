@@ -3,7 +3,7 @@ import type { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
 
 // 创建axios实例
 const service: AxiosInstance = axios.create({
-  baseURL: '/api', // 默认基础URL，可以根据实际需求调整
+  baseURL: 'http://localhost:8080/api', // 直接指向后端服务地址
   timeout: 15000, // 请求超时时间
   headers: {
     'Content-Type': 'application/json;charset=UTF-8'
@@ -32,7 +32,7 @@ service.interceptors.response.use(
   (response: AxiosResponse) => {
     // 对响应数据做点什么
     const res = response.data
-    
+
     // 根据实际的后端返回格式进行调整
     if (res.code !== 200) {
       console.error('响应错误:', res.message || 'Error')
