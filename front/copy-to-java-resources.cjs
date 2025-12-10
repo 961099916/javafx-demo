@@ -1,4 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const fs = require('fs');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const path = require('path');
 
 // 定义源目录和目标目录
@@ -30,7 +32,19 @@ function copyDir(src, dest) {
     if (entry.isDirectory()) {
       copyDir(srcPath, destPath);
     } else {
-      copyFile(srcPath, destPath);
+      // 对于HTML文件，使用JavaFX适配的模板
+      if (entry.name === 'index.html') {
+        // 读取JavaFX适配的模板
+        const templatePath = path.resolve(__dirname, 'javafx-template.html');
+        if (fs.existsSync(templatePath)) {
+          copyFile(templatePath, destPath);
+          console.log('Copied JavaFX-adapted index.html');
+        } else {
+          copyFile(srcPath, destPath);
+        }
+      } else {
+        copyFile(srcPath, destPath);
+      }
     }
   }
 }

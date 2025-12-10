@@ -122,18 +122,103 @@ public class SpringBootJavaFXApplication {
                 // 启用JavaScript
                 webView.getEngine().setJavaScriptEnabled(true);
                 
+                // 设置WebView大小以填充整个窗口
+                webView.setPrefSize(800, 600);
+                
                 try {
-                    // 加载修复后的index.html
+                    // 获取资源URL并加载
                     String webUrl = getClass().getResource("/web/index.html").toExternalForm();
+                    System.out.println("Loading URL: " + webUrl);
                     webView.getEngine().load(webUrl);
+                    
+                    // 添加加载状态监听器以便调试
+                    webView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+                        System.out.println("WebView loading state: " + newState);
+                        if (newState == javafx.concurrent.Worker.State.FAILED) {
+                            System.err.println("Failed to load web page: " + 
+                                webView.getEngine().getLoadWorker().getException().getMessage());
+                            
+                            // 如果加载失败，显示错误信息
+                            webView.getEngine().loadContent(
+                                "<html><body>" +
+                                "<h1 style='color:red;'>Error Loading Application</h1>" +
+                                "<p>Please check if the frontend build was successful and resources were copied.</p>" +
+                                "<p>Error: " + webView.getEngine().getLoadWorker().getException().getMessage() + "</p>" +
+                                "</body></html>"
+                            );
+                        } else if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
+                            System.out.println("Successfully loaded web page");
+                            // 页面加载成功后执行一些JavaScript来验证
+                            try {
+                                // 等待一段时间确保Vue应用完全初始化
+                                Thread.sleep(1000);
+                                // 尝试执行一些JavaScript来验证Vue是否正常工作
+                                Object result = webView.getEngine().executeScript("document.title");
+                                System.out.println("Page title: " + result);
+                                
+                                // 检查Vue应用程序是否正确初始化
+                                Object vueCheck = webView.getEngine().executeScript(
+                                    "typeof window.VueApp !== 'undefined' ? 'Vue app initialized' : 'Vue app not found'"
+                                );
+                                System.out.println("Vue app status: " + vueCheck);
+                                
+                                // 检查应用程序容器元素
+                                Object appElement = webView.getEngine().executeScript(
+                                    "document.getElementById('app') ? 'App element found' : 'App element not found'"
+                                );
+                                System.out.println("App element status: " + appElement);
+                                
+                                // 检查应用程序容器中是否有内容
+                                Object appContent = webView.getEngine().executeScript(
+                                    "document.getElementById('app').innerHTML.length"
+                                );
+                                System.out.println("App content length: " + appContent);
+                            } catch (Exception e) {
+                                System.err.println("Error executing JavaScript: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                    
+                    // 监听JavaScript错误
+                    webView.getEngine().onErrorProperty().set(event -> {
+                        System.err.println("JavaScript Error: " + event.getMessage());
+                        // 注意：某些版本的JavaFX中WebErrorEvent可能没有getFailingUrl方法
+                        try {
+                            // 使用反射来安全地调用getFailingUrl方法（如果存在）
+                            java.lang.reflect.Method method = event.getClass().getMethod("getFailingUrl");
+                            Object url = method.invoke(event);
+                            System.err.println("Error URL: " + url);
+                        } catch (Exception ex) {
+                            System.err.println("Could not get failing URL: " + ex.getMessage());
+                        }
+                    });
                 } catch (Exception e) {
+                    System.err.println("Error getting resource URL: " + e.getMessage());
+                    e.printStackTrace();
+                    
                     try {
                         // 如果index.html加载失败，尝试加载简单测试页面
                         String simpleUrl = getClass().getResource("/web/simple.html").toExternalForm();
                         webView.getEngine().load(simpleUrl);
                     } catch (Exception ex) {
+                        System.err.println("Error loading simple.html: " + ex.getMessage());
                         // 如果都无法加载，则显示默认内容
-                        webView.getEngine().loadContent("<html><body><h1>JavaFX WebView Test</h1><p>WebView is working correctly.</p><p>Current time: " + new java.util.Date() + "</p></body></html>");
+                        webView.getEngine().loadContent(
+                            "<html><head><title>JavaFX App</title></head>" +
+                            "<body style='font-family: Arial, sans-serif; padding: 20px;'>" +
+                            "<h1>Welcome to JavaFX Application</h1>" +
+                            "<p>Your Vue.js frontend should appear here.</p>" +
+                            "<p>If you see this message, there might be an issue with the frontend build.</p>" +
+                            "<h2>Troubleshooting:</h2>" +
+                            "<ol>" +
+                            "<li>Run <code>npm run build</code> in the <code>front</code> directory</li>" +
+                            "<li>Run <code>node copy-to-java-resources.cjs</code> to copy built resources</li>" +
+                            "<li>Rebuild and restart the JavaFX application</li>" +
+                            "</ol>" +
+                            "<p>Current time: " + new java.util.Date() + "</p>" +
+                            "</body></html>"
+                        );
                     }
                 }
                 
@@ -155,6 +240,7 @@ public class SpringBootJavaFXApplication {
                         stop();
                     } catch (Exception e) {
                         // 异常处理
+                        e.printStackTrace();
                     }
                     System.exit(0);
                 });
