@@ -248,7 +248,7 @@ jobs:
   build-macos-intel:
     name: Build macOS Intel Installer
     needs: build-and-test
-    runs-on: macos-13  # Intel-based macOS
+    runs-on: macos-14  # Updated from macos-13 to macos-14 for Intel-based macOS
     
     steps:
     - name: Checkout code
